@@ -18,5 +18,5 @@ CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
 
-!carved_pumpkin.png
+!textures\carved_pumpkin.png
 !external.7z
