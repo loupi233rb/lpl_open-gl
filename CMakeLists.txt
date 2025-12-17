@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.23)
 project(MyProj)
 
-add_subdirectory(external/glfw-3.4)
+if(WIN32)
+    add_subdirectory(external/glfw-3.4)
+    add_subdirectory(example/)
+endif()
 add_subdirectory(external/glad)
 add_subdirectory(external/glm)
 add_subdirectory(external/stb_image)
-add_subdirectory(example/)
 
 add_executable(myprog src/main.cpp)
 target_link_libraries(myprog PRIVATE
