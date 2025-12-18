@@ -109,9 +109,24 @@ glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
 
+glm::mat4 model=glm::mat4(1.0f);
+glm::mat4 view=glm::mat4(1.0f);
+glm::mat4 projection=glm::mat4(1.0f);
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
+    // keep  screen ratio
     glViewport(0, 0, width, height);
+    float aspect = (float)width / (float)height;
+    float ortho_height = 1.0f;
+    float ortho_width = ortho_height*aspect;
+
+    float left = -ortho_width;
+    float right = ortho_width;
+    float up = ortho_height;
+    float down = -ortho_height;
+
+    projection = glm::ortho(left,right,down,up,0.1f,100.0f);
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
@@ -168,6 +183,11 @@ void processInput(GLFWwindow *window)
         cameraPos.y += cameraSpeed;
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         cameraPos.y -= cameraSpeed;
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    else
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // transform = glm::translate(glm::mat4(1.0f), position);
     // transform = glm::rotate(transform, rotationZ, glm::vec3(0.0f, 0.0f, 1.0f));
@@ -270,9 +290,6 @@ int main()
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
     std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
-    glm::mat4 model=glm::mat4(1.0f);
-    glm::mat4 view=glm::mat4(1.0f);
-    glm::mat4 projection=glm::mat4(1.0f);
     model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
     projection = glm::perspective(glm::radians(45.0f), screenWidth / screenHeight, 0.1f, 100.0f);
