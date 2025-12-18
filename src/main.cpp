@@ -59,6 +59,19 @@ float vertices[] = {
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
+glm::vec3 cubePositions[] = {
+    glm::vec3( 0.0f,  0.0f,  0.0f),
+    glm::vec3( 2.0f,  5.0f, -15.0f),
+    glm::vec3(-1.5f, -2.2f, -2.5f),
+    glm::vec3(-3.8f, -2.0f, -12.3f),
+    glm::vec3( 2.4f, -0.4f, -3.5f),
+    glm::vec3(-1.7f,  3.0f, -7.5f),
+    glm::vec3( 1.3f, -2.0f, -2.5f),
+    glm::vec3( 1.5f,  2.0f, -2.5f),
+    glm::vec3( 1.5f,  0.2f, -1.5f),
+    glm::vec3(-1.3f,  1.0f, -1.5f)
+};
+
 unsigned int indices[] = {
     0,1,3,
     1,2,3
@@ -76,6 +89,16 @@ float six[] = {
 float screenWidth = 600.f;
 float screenHeight = 600.f;
 
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
+float lastMouseX = 300.f, lastMouseY = 300.f;
+
+float yaw = -90.f;
+float pitch = 0.f;
+
+bool firstMouse = true;
+
 glm::mat4 transform = glm::mat4(1.0f);
 glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
 float rotationZ = 0.0f;
@@ -91,6 +114,38 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    if(firstMouse) // 这个bool变量初始时是设定为true的
+    {
+        lastMouseX = xpos;
+        lastMouseY = ypos;
+        firstMouse = false;
+    }
+    float xoffset = xpos - lastMouseX;
+    float yoffset = lastMouseY - ypos; // 注意这里是相反的，因为y坐标是从底部往顶部依次增大的
+    lastMouseX = xpos;
+    lastMouseY = ypos;
+
+    float sensitivity = 0.05f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw   += xoffset;
+    pitch += yoffset;
+
+    if(pitch > 89.0f)
+        pitch = 89.0f;
+    if(pitch < -89.0f)
+        pitch = -89.0f;
+
+    glm::vec3 front;
+    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    front.y = sin(glm::radians(pitch));
+    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    cameraFront = glm::normalize(front);
+}
+
 static void glfw_error_callback(int error, const char* description)
 {
     std::cerr << "GLFW error " << error << ": " << description << std::endl;
@@ -98,22 +153,25 @@ static void glfw_error_callback(int error, const char* description)
 
 void processInput(GLFWwindow *window)
 {
-    float step = 0.01f;
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    float cameraSpeed = 0.8f; // adjust accordingly
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    float cameraSpeed = deltaTime * 2.5f; // adjust accordingly
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         cameraPos += cameraSpeed * cameraFront;
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         cameraPos -= cameraSpeed * cameraFront;
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
         cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        cameraPos.y += cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        cameraPos.y -= cameraSpeed;
 
-    transform = glm::translate(glm::mat4(1.0f), position);
-    transform = glm::rotate(transform, rotationZ, glm::vec3(0.0f, 0.0f, 1.0f));
-    transform = glm::scale(transform, scaleVec);
+    // transform = glm::translate(glm::mat4(1.0f), position);
+    // transform = glm::rotate(transform, rotationZ, glm::vec3(0.0f, 0.0f, 1.0f));
+    // transform = glm::scale(transform, scaleVec);
 }
 
 
@@ -144,7 +202,12 @@ int main()
     }
 
     glfwSwapInterval(1);
+
+    // 回调函数部分
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glEnable(GL_DEPTH_TEST);
 
     Shader shaderProgram("../shader/normal.vs", "../shader/normal.fs");
@@ -169,6 +232,7 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, colorVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
+    // 数组缓存对象
     // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
@@ -215,18 +279,16 @@ int main()
 
     while(!glfwWindowShouldClose(window))
     {
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+        glfwPollEvents(); 
         processInput(window);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // float timeValue = glfwGetTime();
-        // float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
-        // shaderProgram.use();
-        // shaderProgram.setVec4f("ourColor", 0.0f, greenValue, 0.0f, 1.0f);
-        // glBindVertexArray(VAO);
-        // glDrawArrays(GL_TRIANGLE_FAN, 0, 6);
-
-        model = glm::rotate(model, (float)glfwGetTime() * glm::radians(0.1f), glm::vec3(0.5f, 1.0f, 0.0f));
+        // 旋转立方体
+        // model = glm::rotate(model, (float)glfwGetTime() * glm::radians(0.1f), glm::vec3(0.5f, 1.0f, 0.0f));
 
         glBindTexture(GL_TEXTURE_2D, texture);
         textureshader.use();
@@ -235,12 +297,21 @@ int main()
         textureshader.setMat4("view", view);
         textureshader.setMat4("projection", projection);
         glBindVertexArray(colorVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        for (unsigned int i = 0; i < 10; i++)
+        {
+            // calculate the model matrix for each object and pass it to shader before drawing
+            glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+            model = glm::translate(model, cubePositions[i]);
+            float angle = 20.0f * i;
+            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            textureshader.setMat4("model", model);
+
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
         glBindVertexArray(0);
 
         
-        glfwSwapBuffers(window);
-        glfwPollEvents();    
+        glfwSwapBuffers(window);   
     }
 
     glDeleteVertexArrays(1, &VAO);
